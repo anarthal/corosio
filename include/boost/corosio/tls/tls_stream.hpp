@@ -10,6 +10,10 @@
 #ifndef BOOST_COROSIO_TLS_TLS_STREAM_HPP
 #define BOOST_COROSIO_TLS_TLS_STREAM_HPP
 
+#if !defined(BOOST_COROSIO_SOURCE) && defined(BOOST_COROSIO_USE_MODULES)
+import boost.corosio;
+#else
+
 #include <boost/corosio/detail/config.hpp>
 #include <boost/capy/io_result.hpp>
 #include <boost/corosio/io_stream.hpp>
@@ -43,18 +47,9 @@ class BOOST_COROSIO_DECL tls_stream : public io_stream
         std::stop_token token_;
         mutable system::error_code ec_;
 
-        handshake_awaitable(
-            tls_stream& stream,
-            int type) noexcept
-            : stream_(stream)
-            , type_(type)
-        {
-        }
+        handshake_awaitable(tls_stream& stream, int type) noexcept : stream_(stream), type_(type) {}
 
-        bool await_ready() const noexcept
-        {
-            return token_.stop_requested();
-        }
+        bool await_ready() const noexcept { return token_.stop_requested(); }
 
         capy::io_result<> await_resume() const noexcept
         {
@@ -64,19 +59,15 @@ class BOOST_COROSIO_DECL tls_stream : public io_stream
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex) -> std::coroutine_handle<>
         {
             stream_.get().handshake(h, ex, type_, token_, &ec_);
             return std::noop_coroutine();
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex,
-            std::stop_token token) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex, std::stop_token token)
+            -> std::coroutine_handle<>
         {
             token_ = std::move(token);
             stream_.get().handshake(h, ex, type_, token_, &ec_);
@@ -90,16 +81,9 @@ class BOOST_COROSIO_DECL tls_stream : public io_stream
         std::stop_token token_;
         mutable system::error_code ec_;
 
-        explicit
-        shutdown_awaitable(tls_stream& stream) noexcept
-            : stream_(stream)
-        {
-        }
+        explicit shutdown_awaitable(tls_stream& stream) noexcept : stream_(stream) {}
 
-        bool await_ready() const noexcept
-        {
-            return token_.stop_requested();
-        }
+        bool await_ready() const noexcept { return token_.stop_requested(); }
 
         capy::io_result<> await_resume() const noexcept
         {
@@ -109,19 +93,15 @@ class BOOST_COROSIO_DECL tls_stream : public io_stream
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex) -> std::coroutine_handle<>
         {
             stream_.get().shutdown(h, ex, token_, &ec_);
             return std::noop_coroutine();
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex,
-            std::stop_token token) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex, std::stop_token token)
+            -> std::coroutine_handle<>
         {
             token_ = std::move(token);
             stream_.get().shutdown(h, ex, token_, &ec_);
@@ -173,10 +153,7 @@ public:
         (co_await secure.handshake(tls_stream::client)).value();
         @endcode
     */
-    auto handshake(handshake_type type)
-    {
-        return handshake_awaitable(*this, type);
-    }
+    auto handshake(handshake_type type) { return handshake_awaitable(*this, type); }
 
     /** Perform a graceful TLS shutdown asynchronously.
 
@@ -203,63 +180,40 @@ public:
         if(ec) { ... }
         @endcode
     */
-    auto shutdown()
-    {
-        return shutdown_awaitable(*this);
-    }
+    auto shutdown() { return shutdown_awaitable(*this); }
 
     /** Returns a reference to the underlying stream.
 
         @return Reference to the wrapped io_stream.
     */
-    io_stream& next_layer() noexcept
-    {
-        return s_;
-    }
+    io_stream& next_layer() noexcept { return s_; }
 
     /** Returns a const reference to the underlying stream.
 
         @return Const reference to the wrapped io_stream.
     */
-    io_stream const& next_layer() const noexcept
-    {
-        return s_;
-    }
+    io_stream const& next_layer() const noexcept { return s_; }
 
     struct tls_stream_impl : io_stream_impl
     {
-        virtual void handshake(
-            std::coroutine_handle<>,
-            capy::executor_ref,
-            int,
-            std::stop_token,
+        virtual void handshake(std::coroutine_handle<>, capy::executor_ref, int, std::stop_token,
             system::error_code*) = 0;
 
         virtual void shutdown(
-            std::coroutine_handle<>,
-            capy::executor_ref,
-            std::stop_token,
-            system::error_code*) = 0;
+            std::coroutine_handle<>, capy::executor_ref, std::stop_token, system::error_code*) = 0;
     };
 
 protected:
-    explicit
-    tls_stream(io_stream& stream) noexcept
-        : io_stream(stream.context())
-        , s_(stream)
-    {
-    }
+    explicit tls_stream(io_stream& stream) noexcept : io_stream(stream.context()), s_(stream) {}
 
     io_stream& s_;
 
 private:
-    tls_stream_impl& get() const noexcept
-    {
-        return *static_cast<tls_stream_impl*>(impl_);
-    }
+    tls_stream_impl& get() const noexcept { return *static_cast<tls_stream_impl*>(impl_); }
 };
 
 } // namespace corosio
 } // namespace boost
 
+#endif
 #endif

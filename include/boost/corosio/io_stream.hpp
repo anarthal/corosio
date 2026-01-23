@@ -10,6 +10,10 @@
 #ifndef BOOST_COROSIO_IO_STREAM_HPP
 #define BOOST_COROSIO_IO_STREAM_HPP
 
+#if !defined(BOOST_COROSIO_SOURCE) && defined(BOOST_COROSIO_USE_MODULES)
+import boost.corosio;
+#else
+
 #include <boost/corosio/detail/config.hpp>
 #include <boost/corosio/io_object.hpp>
 #include <boost/capy/io_result.hpp>
@@ -104,40 +108,30 @@ protected:
         mutable system::error_code ec_;
         mutable std::size_t bytes_transferred_ = 0;
 
-        read_some_awaitable(
-            io_stream& ios,
-            MutableBufferSequence const& buffers) noexcept
-            : ios_(ios)
-            , buffers_(buffers)
-        {
-        }
+        read_some_awaitable(io_stream& ios, MutableBufferSequence buffers) noexcept
+            : ios_(ios),
+              buffers_(std::move(buffers))
+        {}
 
-        bool await_ready() const noexcept
-        {
-            return token_.stop_requested();
-        }
+        bool await_ready() const noexcept { return token_.stop_requested(); }
 
         capy::io_result<std::size_t> await_resume() const noexcept
         {
-            if (token_.stop_requested())
+            if(token_.stop_requested())
                 return {make_error_code(system::errc::operation_canceled), 0};
             return {ec_, bytes_transferred_};
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex) -> std::coroutine_handle<>
         {
             ios_.get().read_some(h, ex, buffers_, token_, &ec_, &bytes_transferred_);
             return std::noop_coroutine();
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex,
-            std::stop_token token) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex, std::stop_token token)
+            -> std::coroutine_handle<>
         {
             token_ = std::move(token);
             ios_.get().read_some(h, ex, buffers_, token_, &ec_, &bytes_transferred_);
@@ -154,40 +148,30 @@ protected:
         mutable system::error_code ec_;
         mutable std::size_t bytes_transferred_ = 0;
 
-        write_some_awaitable(
-            io_stream& ios,
-            ConstBufferSequence const& buffers) noexcept
-            : ios_(ios)
-            , buffers_(buffers)
-        {
-        }
+        write_some_awaitable(io_stream& ios, ConstBufferSequence buffers) noexcept
+            : ios_(ios),
+              buffers_(std::move(buffers))
+        {}
 
-        bool await_ready() const noexcept
-        {
-            return token_.stop_requested();
-        }
+        bool await_ready() const noexcept { return token_.stop_requested(); }
 
         capy::io_result<std::size_t> await_resume() const noexcept
         {
-            if (token_.stop_requested())
+            if(token_.stop_requested())
                 return {make_error_code(system::errc::operation_canceled), 0};
             return {ec_, bytes_transferred_};
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex) -> std::coroutine_handle<>
         {
             ios_.get().write_some(h, ex, buffers_, token_, &ec_, &bytes_transferred_);
             return std::noop_coroutine();
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex,
-            std::stop_token token) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex, std::stop_token token)
+            -> std::coroutine_handle<>
         {
             token_ = std::move(token);
             ios_.get().write_some(h, ex, buffers_, token_, &ec_, &bytes_transferred_);
@@ -198,21 +182,11 @@ protected:
 public:
     struct io_stream_impl : io_object_impl
     {
-        virtual void read_some(
-            std::coroutine_handle<>,
-            capy::executor_ref,
-            io_buffer_param,
-            std::stop_token,
-            system::error_code*,
-            std::size_t*) = 0;
+        virtual void read_some(std::coroutine_handle<>, capy::executor_ref, io_buffer_param,
+            std::stop_token, system::error_code*, std::size_t*) = 0;
 
-        virtual void write_some(
-            std::coroutine_handle<>,
-            capy::executor_ref,
-            io_buffer_param,
-            std::stop_token,
-            system::error_code*,
-            std::size_t*) = 0;
+        virtual void write_some(std::coroutine_handle<>, capy::executor_ref, io_buffer_param,
+            std::stop_token, system::error_code*, std::size_t*) = 0;
     };
 
     /** Returns the underlying implementation.
@@ -222,28 +196,17 @@ public:
 
         @return Pointer to the io_stream_impl, or nullptr if not set.
     */
-    io_stream_impl*
-    get_impl() const noexcept
-    {
-        return static_cast<io_stream_impl*>(impl_);
-    }
+    io_stream_impl* get_impl() const noexcept { return static_cast<io_stream_impl*>(impl_); }
 
 protected:
-    explicit
-    io_stream(
-        capy::execution_context& ctx) noexcept
-        : io_object(ctx)
-    {
-    }
+    explicit io_stream(capy::execution_context& ctx) noexcept : io_object(ctx) {}
 
 private:
-    io_stream_impl& get() const noexcept
-    {
-        return *static_cast<io_stream_impl*>(impl_);
-    }
+    io_stream_impl& get() const noexcept { return *static_cast<io_stream_impl*>(impl_); }
 };
 
 } // namespace corosio
 } // namespace boost
 
+#endif
 #endif

@@ -10,6 +10,10 @@
 #ifndef BOOST_COROSIO_RESOLVER_RESULTS_HPP
 #define BOOST_COROSIO_RESOLVER_RESULTS_HPP
 
+#if !defined(BOOST_COROSIO_SOURCE) && defined(BOOST_COROSIO_USE_MODULES)
+import boost.corosio;
+#else
+
 #include <boost/corosio/detail/config.hpp>
 #include <boost/corosio/endpoint.hpp>
 
@@ -47,42 +51,23 @@ public:
         @param host The host name from the query.
         @param service The service name from the query.
     */
-    resolver_entry(
-        endpoint ep,
-        std::string_view host,
-        std::string_view service)
-        : ep_(ep)
-        , host_name_(host)
-        , service_name_(service)
-    {
-    }
+    resolver_entry(endpoint ep, std::string_view host, std::string_view service)
+        : ep_(ep),
+          host_name_(host),
+          service_name_(service)
+    {}
 
     /** Get the endpoint. */
-    endpoint
-    get_endpoint() const noexcept
-    {
-        return ep_;
-    }
+    endpoint get_endpoint() const noexcept { return ep_; }
 
     /** Implicit conversion to endpoint. */
-    operator endpoint() const noexcept
-    {
-        return ep_;
-    }
+    operator endpoint() const noexcept { return ep_; }
 
     /** Get the host name from the query. */
-    std::string const&
-    host_name() const noexcept
-    {
-        return host_name_;
-    }
+    std::string const& host_name() const noexcept { return host_name_; }
 
     /** Get the service name from the query. */
-    std::string const&
-    service_name() const noexcept
-    {
-        return service_name_;
-    }
+    std::string const& service_name() const noexcept { return service_name_; }
 };
 
 //------------------------------------------------------------------------------
@@ -119,84 +104,51 @@ public:
 
         @param entries The resolved entries.
     */
-    explicit
-    resolver_results(std::vector<resolver_entry> entries)
-        : entries_(std::make_shared<std::vector<resolver_entry>>(
-            std::move(entries)))
-    {
-    }
+    explicit resolver_results(std::vector<resolver_entry> entries)
+        : entries_(std::make_shared<std::vector<resolver_entry>>(std::move(entries)))
+    {}
 
     /** Get the number of entries. */
-    size_type
-    size() const noexcept
-    {
-        return entries_ ? entries_->size() : 0;
-    }
+    size_type size() const noexcept { return entries_ ? entries_->size() : 0; }
 
     /** Check if the results are empty. */
-    bool
-    empty() const noexcept
-    {
-        return !entries_ || entries_->empty();
-    }
+    bool empty() const noexcept { return !entries_ || entries_->empty(); }
 
     /** Get an iterator to the first entry. */
-    const_iterator
-    begin() const noexcept
+    const_iterator begin() const noexcept
     {
-        if (entries_)
+        if(entries_)
             return entries_->begin();
         static std::vector<resolver_entry> empty;
         return empty.begin();
     }
 
     /** Get an iterator past the last entry. */
-    const_iterator
-    end() const noexcept
+    const_iterator end() const noexcept
     {
-        if (entries_)
+        if(entries_)
             return entries_->end();
         static std::vector<resolver_entry> empty;
         return empty.end();
     }
 
     /** Get an iterator to the first entry. */
-    const_iterator
-    cbegin() const noexcept
-    {
-        return begin();
-    }
+    const_iterator cbegin() const noexcept { return begin(); }
 
     /** Get an iterator past the last entry. */
-    const_iterator
-    cend() const noexcept
-    {
-        return end();
-    }
+    const_iterator cend() const noexcept { return end(); }
 
     /** Swap with another results object. */
-    void
-    swap(resolver_results& other) noexcept
-    {
-        entries_.swap(other.entries_);
-    }
+    void swap(resolver_results& other) noexcept { entries_.swap(other.entries_); }
 
     /** Test for equality. */
-    friend
-    bool
-    operator==(
-        resolver_results const& a,
-        resolver_results const& b) noexcept
+    friend bool operator==(resolver_results const& a, resolver_results const& b) noexcept
     {
         return a.entries_ == b.entries_;
     }
 
     /** Test for inequality. */
-    friend
-    bool
-    operator!=(
-        resolver_results const& a,
-        resolver_results const& b) noexcept
+    friend bool operator!=(resolver_results const& a, resolver_results const& b) noexcept
     {
         return !(a == b);
     }
@@ -205,4 +157,5 @@ public:
 } // namespace corosio
 } // namespace boost
 
+#endif
 #endif

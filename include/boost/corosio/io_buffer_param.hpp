@@ -10,6 +10,10 @@
 #ifndef BOOST_COROSIO_IO_BUFFER_PARAM_HPP
 #define BOOST_COROSIO_IO_BUFFER_PARAM_HPP
 
+#if !defined(BOOST_COROSIO_SOURCE) && defined(BOOST_COROSIO_USE_MODULES)
+import boost.corosio;
+#else
+
 #include <boost/corosio/detail/config.hpp>
 #include <boost/capy/buffers.hpp>
 
@@ -307,11 +311,9 @@ public:
         @param bs The buffer sequence to adapt.
     */
     template<capy::ConstBufferSequence BS>
-    io_buffer_param(BS const& bs) noexcept
-        : bs_(&bs)
-        , fn_(&copy_impl<BS>)
-    {
-    }
+    io_buffer_param(BS const& bs) noexcept : bs_(&bs),
+                                             fn_(&copy_impl<BS>)
+    {}
 
     /** Fill an array with buffers from the sequence.
 
@@ -325,28 +327,21 @@ public:
 
         @return The number of non-zero buffers copied.
     */
-    std::size_t
-    copy_to(
-        capy::mutable_buffer* dest,
-        std::size_t n) const noexcept
+    std::size_t copy_to(capy::mutable_buffer* dest, std::size_t n) const noexcept
     {
         return fn_(bs_, dest, n);
     }
 
 private:
     template<capy::ConstBufferSequence BS>
-    static std::size_t
-    copy_impl(
-        void const* p,
-        capy::mutable_buffer* dest,
-        std::size_t n)
+    static std::size_t copy_impl(void const* p, capy::mutable_buffer* dest, std::size_t n)
     {
         auto const& bs = *static_cast<BS const*>(p);
         auto it = capy::begin(bs);
         auto const end_it = capy::end(bs);
 
         std::size_t i = 0;
-        if constexpr (capy::MutableBufferSequence<BS>)
+        if constexpr(capy::MutableBufferSequence<BS>)
         {
             for(; it != end_it && i < n; ++it)
             {
@@ -364,16 +359,13 @@ private:
                 if(buf.size() == 0)
                     continue;
                 dest[i++] = capy::mutable_buffer(
-                    const_cast<char*>(
-                        static_cast<char const*>(buf.data())),
-                    buf.size());
+                    const_cast<char*>(static_cast<char const*>(buf.data())), buf.size());
             }
         }
         return i;
     }
 
-    using fn_t = std::size_t(*)(void const*,
-        capy::mutable_buffer*, std::size_t);
+    using fn_t = std::size_t (*)(void const*, capy::mutable_buffer*, std::size_t);
 
     void const* bs_;
     fn_t fn_;
@@ -382,4 +374,5 @@ private:
 } // namespace corosio
 } // namespace boost
 
+#endif
 #endif

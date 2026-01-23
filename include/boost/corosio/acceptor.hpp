@@ -10,6 +10,10 @@
 #ifndef BOOST_COROSIO_ACCEPTOR_HPP
 #define BOOST_COROSIO_ACCEPTOR_HPP
 
+#if !defined(BOOST_COROSIO_SOURCE) && defined(BOOST_COROSIO_USE_MODULES)
+import boost.corosio;
+#else
+
 #include <boost/corosio/detail/config.hpp>
 #include <boost/corosio/detail/except.hpp>
 #include <boost/corosio/io_object.hpp>
@@ -72,25 +76,18 @@ class BOOST_COROSIO_DECL acceptor : public io_object
         mutable system::error_code ec_;
         mutable io_object::io_object_impl* peer_impl_ = nullptr;
 
-        accept_awaitable(acceptor& acc, socket& peer) noexcept
-            : acc_(acc)
-            , peer_(peer)
-        {
-        }
+        accept_awaitable(acceptor& acc, socket& peer) noexcept : acc_(acc), peer_(peer) {}
 
-        bool await_ready() const noexcept
-        {
-            return token_.stop_requested();
-        }
+        bool await_ready() const noexcept { return token_.stop_requested(); }
 
         capy::io_result<> await_resume() const noexcept
         {
-            if (token_.stop_requested())
+            if(token_.stop_requested())
                 return {make_error_code(system::errc::operation_canceled)};
-            
+
             // Transfer the accepted impl to the peer socket
             // (acceptor is a friend of socket, so we can access impl_)
-            if (!ec_ && peer_impl_)
+            if(!ec_ && peer_impl_)
             {
                 peer_.close();
                 peer_.impl_ = peer_impl_;
@@ -99,19 +96,15 @@ class BOOST_COROSIO_DECL acceptor : public io_object
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex) -> std::coroutine_handle<>
         {
             acc_.get().accept(h, ex, token_, &ec_, &peer_impl_);
             return std::noop_coroutine();
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex,
-            std::stop_token token) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex, std::stop_token token)
+            -> std::coroutine_handle<>
         {
             token_ = std::move(token);
             acc_.get().accept(h, ex, token_, &ec_, &peer_impl_);
@@ -139,12 +132,9 @@ public:
         @param ex The executor whose context will own the acceptor.
     */
     template<class Ex>
-        requires (!std::same_as<std::remove_cvref_t<Ex>, acceptor>) &&
-                 capy::Executor<Ex>
-    explicit acceptor(Ex const& ex)
-        : acceptor(ex.context())
-    {
-    }
+        requires(!std::same_as<std::remove_cvref_t<Ex>, acceptor>) && capy::Executor<Ex>
+    explicit acceptor(Ex const& ex) : acceptor(ex.context())
+    {}
 
     /** Move constructor.
 
@@ -152,8 +142,7 @@ public:
 
         @param other The acceptor to move from.
     */
-    acceptor(acceptor&& other) noexcept
-        : io_object(other.context())
+    acceptor(acceptor&& other) noexcept : io_object(other.context())
     {
         impl_ = other.impl_;
         other.impl_ = nullptr;
@@ -172,11 +161,10 @@ public:
     */
     acceptor& operator=(acceptor&& other)
     {
-        if (this != &other)
+        if(this != &other)
         {
-            if (ctx_ != other.ctx_)
-                detail::throw_logic_error(
-                    "cannot move acceptor across execution contexts");
+            if(ctx_ != other.ctx_)
+                detail::throw_logic_error("cannot move acceptor across execution contexts");
             close();
             impl_ = other.impl_;
             other.impl_ = nullptr;
@@ -214,10 +202,7 @@ public:
 
         @return `true` if the acceptor is open and listening.
     */
-    bool is_open() const noexcept
-    {
-        return impl_ != nullptr;
-    }
+    bool is_open() const noexcept { return impl_ != nullptr; }
 
     /** Initiate an asynchronous accept operation.
 
@@ -267,22 +252,16 @@ public:
 
     struct acceptor_impl : io_object_impl
     {
-        virtual void accept(
-            std::coroutine_handle<>,
-            capy::executor_ref,
-            std::stop_token,
-            system::error_code*,
-            io_object_impl**) = 0;
+        virtual void accept(std::coroutine_handle<>, capy::executor_ref, std::stop_token,
+            system::error_code*, io_object_impl**) = 0;
     };
 
 private:
-    inline acceptor_impl& get() const noexcept
-    {
-        return *static_cast<acceptor_impl*>(impl_);
-    }
+    inline acceptor_impl& get() const noexcept { return *static_cast<acceptor_impl*>(impl_); }
 };
 
 } // namespace corosio
 } // namespace boost
 
+#endif
 #endif

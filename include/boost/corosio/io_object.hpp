@@ -10,6 +10,10 @@
 #ifndef BOOST_COROSIO_IO_OBJECT_HPP
 #define BOOST_COROSIO_IO_OBJECT_HPP
 
+#if !defined(BOOST_COROSIO_SOURCE) && defined(BOOST_COROSIO_USE_MODULES)
+import boost.corosio;
+#else
+
 #include <boost/corosio/detail/config.hpp>
 #include <boost/capy/ex/execution_context.hpp>
 
@@ -45,22 +49,12 @@ public:
 
         @return Reference to the execution context that owns this socket.
     */
-    auto
-    context() const noexcept ->
-        capy::execution_context&
-    {
-        return *ctx_;
-    }
+    auto context() const noexcept -> capy::execution_context& { return *ctx_; }
 
 protected:
     virtual ~io_object() = default;
 
-    explicit
-    io_object(
-        capy::execution_context& ctx) noexcept
-        : ctx_(&ctx)
-    {
-    }
+    explicit io_object(capy::execution_context& ctx) noexcept : ctx_(&ctx) {}
 
     capy::execution_context* ctx_ = nullptr;
     io_object_impl* impl_ = nullptr;
@@ -69,4 +63,5 @@ protected:
 } // namespace corosio
 } // namespace boost
 
+#endif
 #endif

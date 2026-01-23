@@ -10,6 +10,10 @@
 #ifndef BOOST_COROSIO_TCP_SERVER_HPP
 #define BOOST_COROSIO_TCP_SERVER_HPP
 
+#if !defined(BOOST_COROSIO_SOURCE) && defined(BOOST_COROSIO_USE_MODULES)
+import boost.corosio;
+#else
+
 #include <boost/corosio/detail/config.hpp>
 #include <boost/corosio/acceptor.hpp>
 #include <boost/corosio/socket.hpp>
@@ -31,11 +35,10 @@ namespace corosio {
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable: 4251) // class needs to have dll-interface
+#pragma warning(disable : 4251) // class needs to have dll-interface
 #endif
 
-class BOOST_COROSIO_DECL
-    tcp_server
+class BOOST_COROSIO_DECL tcp_server
 {
 public:
     class worker_base;
@@ -55,26 +58,22 @@ private:
     {
         struct promise_type
         {
-            Ex ex;  // Stored directly in frame, no allocation
+            Ex ex; // Stored directly in frame, no allocation
 
             // For regular coroutines: first arg is the executor
             template<class E, class... Args>
                 requires capy::Executor<std::decay_t<E>>
-            promise_type(E e, Args&&...)
-                : ex(std::move(e))
-            {
-            }
+            promise_type(E e, Args&&...) : ex(std::move(e))
+            {}
 
             // For lambda coroutines: first arg is lambda closure, second is executor
             template<class Closure, class E, class... Args>
-                requires (!capy::Executor<std::decay_t<Closure>> && 
-                          capy::Executor<std::decay_t<E>>)
-            promise_type(Closure&&, E e, Args&&...)
-                : ex(std::move(e))
-            {
-            }
+                requires(!capy::Executor<std::decay_t<Closure>> && capy::Executor<std::decay_t<E>>)
+            promise_type(Closure&&, E e, Args&&...) : ex(std::move(e))
+            {}
 
-            launch_wrapper get_return_object() noexcept {
+            launch_wrapper get_return_object() noexcept
+            {
                 return {std::coroutine_handle<promise_type>::from_promise(*this)};
             }
             std::suspend_always initial_suspend() noexcept { return {}; }
@@ -106,10 +105,7 @@ private:
 
         std::coroutine_handle<promise_type> h;
 
-        launch_wrapper(std::coroutine_handle<promise_type> handle) noexcept
-            : h(handle)
-        {
-        }
+        launch_wrapper(std::coroutine_handle<promise_type> handle) noexcept : h(handle) {}
 
         ~launch_wrapper()
         {
@@ -117,10 +113,7 @@ private:
                 h.destroy();
         }
 
-        launch_wrapper(launch_wrapper&& o) noexcept
-            : h(std::exchange(o.h, nullptr))
-        {
-        }
+        launch_wrapper(launch_wrapper&& o) noexcept : h(std::exchange(o.h, nullptr)) {}
 
         launch_wrapper(launch_wrapper const&) = delete;
         launch_wrapper& operator=(launch_wrapper const&) = delete;
@@ -144,8 +137,8 @@ private:
         bool await_ready() const noexcept;
 
         template<typename Ex>
-        std::coroutine_handle<>
-        await_suspend(std::coroutine_handle<> h, Ex const&, std::stop_token) noexcept
+        std::coroutine_handle<> await_suspend(
+            std::coroutine_handle<> h, Ex const&, std::stop_token) noexcept
         {
             // Dispatch to server's executor before touching shared state
             return self_.ex_.dispatch(h);
@@ -167,8 +160,7 @@ private:
         bool await_ready() const noexcept;
 
         template<typename Ex>
-        bool
-        await_suspend(std::coroutine_handle<> h, Ex const&, std::stop_token) noexcept
+        bool await_suspend(std::coroutine_handle<> h, Ex const&, std::stop_token) noexcept
         {
             wait_.h = h;
             wait_.w = nullptr;
@@ -192,8 +184,7 @@ private:
     capy::task<void> do_accept(acceptor& acc);
 
 public:
-    class BOOST_COROSIO_DECL
-        worker_base
+    class BOOST_COROSIO_DECL worker_base
     {
         worker_base* next = nullptr;
 
@@ -206,8 +197,7 @@ public:
         virtual corosio::socket& socket() = 0;
     };
 
-    class BOOST_COROSIO_DECL
-        workers
+    class BOOST_COROSIO_DECL workers
     {
         friend class tcp_server;
 
@@ -257,11 +247,7 @@ public:
 
         friend class tcp_server;
 
-        launcher(tcp_server& srv, worker_base& w) noexcept
-            : srv_(&srv)
-            , w_(&w)
-        {
-        }
+        launcher(tcp_server& srv, worker_base& w) noexcept : srv_(&srv), w_(&w) {}
 
     public:
         ~launcher()
@@ -270,11 +256,7 @@ public:
                 srv_->push_sync(*w_);
         }
 
-        launcher(launcher&& o) noexcept
-            : srv_(o.srv_)
-            , w_(std::exchange(o.w_, nullptr))
-        {
-        }
+        launcher(launcher&& o) noexcept : srv_(o.srv_), w_(std::exchange(o.w_, nullptr)) {}
         launcher(launcher const&) = delete;
         launcher& operator=(launcher const&) = delete;
         launcher& operator=(launcher&&) = delete;
@@ -282,30 +264,33 @@ public:
         template<class Executor>
         void operator()(Executor const& ex, capy::task<void> task)
         {
-            if(! w_)
+            if(!w_)
                 throw std::logic_error("launcher already invoked");
 
             auto* w = std::exchange(w_, nullptr);
 
             // Return worker to pool if coroutine setup throws
-            struct guard_t {
+            struct guard_t
+            {
                 tcp_server* srv;
                 worker_base* w;
-                ~guard_t() { if(w) srv->push_sync(*w); }
+                ~guard_t()
+                {
+                    if(w)
+                        srv->push_sync(*w);
+                }
             } guard{srv_, w};
 
-            auto wrapper =
-                [](Executor ex, tcp_server* self, capy::task<void> t, worker_base* wp)
-                    -> launch_wrapper<Executor>
-                {
-                    (void)ex; // Executor stored in promise via constructor
-                    co_await std::move(t);
-                    co_await self->push(*wp);
-                }(ex, srv_, std::move(task), w);
+            auto wrapper = [](Executor ex, tcp_server* self, capy::task<void> t,
+                               worker_base* wp) -> launch_wrapper<Executor> {
+                (void)ex; // Executor stored in promise via constructor
+                co_await std::move(t);
+                co_await self->push(*wp);
+            }(ex, srv_, std::move(task), w);
 
             // Executor is now stored in promise via constructor
             ex.post(std::exchange(wrapper.h, nullptr)); // Release before post
-            guard.w = nullptr; // Success - dismiss guard
+            guard.w = nullptr;                          // Success - dismiss guard
         }
     };
 
@@ -313,13 +298,9 @@ protected:
     workers wv_; // API for derived
 
     template<capy::Executor Ex>
-    tcp_server(
-        io_context& ctx,
-        Ex const& ex)
-        : ctx_(ctx)
-        , ex_(ex)
-    {
-    }
+    tcp_server(io_context& ctx, Ex const& ex) : ctx_(ctx),
+                                                ex_(ex)
+    {}
 
 public:
     system::error_code bind(endpoint ep);
@@ -331,7 +312,8 @@ public:
 #pragma warning(pop)
 #endif
 
-} // corosio
-} // boost
+} // namespace corosio
+} // namespace boost
 
+#endif
 #endif

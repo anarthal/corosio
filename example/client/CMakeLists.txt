@@ -20,3 +20,6 @@ set_property(TARGET corosio_example_client_http
 
 target_link_libraries(corosio_example_client_http
     Boost::corosio)
+
+set_target_properties(corosio_example_client_http PROPERTIES CXX_SCAN_FOR_MODULES ON)
+# target_compile_features(corosio_example_client_http PUBLIC cxx_std_20)

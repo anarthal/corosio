@@ -10,6 +10,7 @@
 // Test that header file is self-contained.
 #include <boost/corosio/io_context.hpp>
 
+#include <boost/capy/coro.hpp>
 #include <boost/capy/concept/executor.hpp>
 
 #include <atomic>

@@ -7,7 +7,8 @@
 // Official repository: https://github.com/cppalliance/corosio
 //
 
-#include <boost/corosio.hpp>
+import boost.corosio; //
+// #include <boost/corosio.hpp>
 #include <boost/capy/task.hpp>
 #include <boost/capy/ex/run_async.hpp>
 #include <boost/capy/buffers.hpp>

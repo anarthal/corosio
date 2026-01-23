@@ -10,6 +10,10 @@
 #ifndef BOOST_COROSIO_TIMER_HPP
 #define BOOST_COROSIO_TIMER_HPP
 
+#if !defined(BOOST_COROSIO_SOURCE) && defined(BOOST_COROSIO_USE_MODULES)
+import boost.corosio;
+#else
+
 #include <boost/corosio/detail/config.hpp>
 #include <boost/corosio/detail/except.hpp>
 #include <boost/corosio/io_object.hpp>
@@ -53,32 +57,25 @@ class BOOST_COROSIO_DECL timer : public io_object
 
         explicit wait_awaitable(timer& t) noexcept : t_(t) {}
 
-        bool await_ready() const noexcept
-        {
-            return token_.stop_requested();
-        }
+        bool await_ready() const noexcept { return token_.stop_requested(); }
 
         capy::io_result<> await_resume() const noexcept
         {
-            if (token_.stop_requested())
+            if(token_.stop_requested())
                 return {capy::error::canceled};
             return {ec_};
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex) -> std::coroutine_handle<>
         {
             t_.get().wait(h, ex, token_, &ec_);
             return std::noop_coroutine();
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex,
-            std::stop_token token) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex, std::stop_token token)
+            -> std::coroutine_handle<>
         {
             token_ = std::move(token);
             t_.get().wait(h, ex, token_, &ec_);
@@ -90,10 +87,7 @@ public:
     struct timer_impl : io_object_impl
     {
         virtual void wait(
-            std::coroutine_handle<>,
-            capy::executor_ref,
-            std::stop_token,
-            system::error_code*) = 0;
+            std::coroutine_handle<>, capy::executor_ref, std::stop_token, system::error_code*) = 0;
     };
 
 public:
@@ -202,19 +196,14 @@ public:
         The timer must have an expiry time set via expires_at() or
         expires_after().
     */
-    auto wait()
-    {
-        return wait_awaitable(*this);
-    }
+    auto wait() { return wait_awaitable(*this); }
 
 private:
-    timer_impl& get() const noexcept
-    {
-        return *static_cast<timer_impl*>(impl_);
-    }
+    timer_impl& get() const noexcept { return *static_cast<timer_impl*>(impl_); }
 };
 
 } // namespace corosio
 } // namespace boost
 
+#endif
 #endif

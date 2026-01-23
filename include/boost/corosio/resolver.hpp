@@ -10,6 +10,10 @@
 #ifndef BOOST_COROSIO_RESOLVER_HPP
 #define BOOST_COROSIO_RESOLVER_HPP
 
+#if !defined(BOOST_COROSIO_SOURCE) && defined(BOOST_COROSIO_USE_MODULES)
+import boost.corosio;
+#else
+
 #include <boost/corosio/detail/config.hpp>
 #include <boost/corosio/detail/except.hpp>
 #include <boost/corosio/io_object.hpp>
@@ -69,38 +73,26 @@ enum class resolve_flags : unsigned int
 };
 
 /** Combine two resolve_flags. */
-inline
-resolve_flags
-operator|(resolve_flags a, resolve_flags b) noexcept
+inline resolve_flags operator|(resolve_flags a, resolve_flags b) noexcept
 {
-    return static_cast<resolve_flags>(
-        static_cast<unsigned int>(a) |
-        static_cast<unsigned int>(b));
+    return static_cast<resolve_flags>(static_cast<unsigned int>(a) | static_cast<unsigned int>(b));
 }
 
 /** Combine two resolve_flags. */
-inline
-resolve_flags&
-operator|=(resolve_flags& a, resolve_flags b) noexcept
+inline resolve_flags& operator|=(resolve_flags& a, resolve_flags b) noexcept
 {
     a = a | b;
     return a;
 }
 
 /** Intersect two resolve_flags. */
-inline
-resolve_flags
-operator&(resolve_flags a, resolve_flags b) noexcept
+inline resolve_flags operator&(resolve_flags a, resolve_flags b) noexcept
 {
-    return static_cast<resolve_flags>(
-        static_cast<unsigned int>(a) &
-        static_cast<unsigned int>(b));
+    return static_cast<resolve_flags>(static_cast<unsigned int>(a) & static_cast<unsigned int>(b));
 }
 
 /** Intersect two resolve_flags. */
-inline
-resolve_flags&
-operator&=(resolve_flags& a, resolve_flags b) noexcept
+inline resolve_flags& operator&=(resolve_flags& a, resolve_flags b) noexcept
 {
     a = a & b;
     return a;
@@ -148,44 +140,33 @@ class BOOST_COROSIO_DECL resolver : public io_object
         mutable system::error_code ec_;
         mutable resolver_results results_;
 
-        resolve_awaitable(
-            resolver& r,
-            std::string_view host,
-            std::string_view service,
+        resolve_awaitable(resolver& r, std::string_view host, std::string_view service,
             resolve_flags flags) noexcept
-            : r_(r)
-            , host_(host)
-            , service_(service)
-            , flags_(flags)
-        {
-        }
+            : r_(r),
+              host_(host),
+              service_(service),
+              flags_(flags)
+        {}
 
-        bool await_ready() const noexcept
-        {
-            return token_.stop_requested();
-        }
+        bool await_ready() const noexcept { return token_.stop_requested(); }
 
         capy::io_result<resolver_results> await_resume() const noexcept
         {
-            if (token_.stop_requested())
+            if(token_.stop_requested())
                 return {make_error_code(system::errc::operation_canceled), {}};
             return {ec_, std::move(results_)};
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex) -> std::coroutine_handle<>
         {
             r_.get().resolve(h, ex, host_, service_, flags_, token_, &ec_, &results_);
             return std::noop_coroutine();
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex,
-            std::stop_token token) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex, std::stop_token token)
+            -> std::coroutine_handle<>
         {
             token_ = std::move(token);
             r_.get().resolve(h, ex, host_, service_, flags_, token_, &ec_, &results_);
@@ -213,12 +194,9 @@ public:
         @param ex The executor whose context will own the resolver.
     */
     template<class Ex>
-        requires (!std::same_as<std::remove_cvref_t<Ex>, resolver>) &&
-                 capy::Executor<Ex>
-    explicit resolver(Ex const& ex)
-        : resolver(ex.context())
-    {
-    }
+        requires(!std::same_as<std::remove_cvref_t<Ex>, resolver>) && capy::Executor<Ex>
+    explicit resolver(Ex const& ex) : resolver(ex.context())
+    {}
 
     /** Move constructor.
 
@@ -226,8 +204,7 @@ public:
 
         @param other The resolver to move from.
     */
-    resolver(resolver&& other) noexcept
-        : io_object(other.context())
+    resolver(resolver&& other) noexcept : io_object(other.context())
     {
         impl_ = other.impl_;
         other.impl_ = nullptr;
@@ -247,11 +224,10 @@ public:
     */
     resolver& operator=(resolver&& other)
     {
-        if (this != &other)
+        if(this != &other)
         {
-            if (ctx_ != other.ctx_)
-                detail::throw_logic_error(
-                    "cannot move resolver across execution contexts");
+            if(ctx_ != other.ctx_)
+                detail::throw_logic_error("cannot move resolver across execution contexts");
             cancel();
             impl_ = other.impl_;
             other.impl_ = nullptr;
@@ -280,9 +256,7 @@ public:
         auto [ec, results] = co_await r.resolve("www.example.com", "https");
         @endcode
     */
-    auto resolve(
-        std::string_view host,
-        std::string_view service)
+    auto resolve(std::string_view host, std::string_view service)
     {
         return resolve_awaitable(*this, host, service, resolve_flags::none);
     }
@@ -299,10 +273,7 @@ public:
 
         @return An awaitable that completes with `io_result<resolver_results>`.
     */
-    auto resolve(
-        std::string_view host,
-        std::string_view service,
-        resolve_flags flags)
+    auto resolve(std::string_view host, std::string_view service, resolve_flags flags)
     {
         return resolve_awaitable(*this, host, service, flags);
     }
@@ -317,27 +288,19 @@ public:
 public:
     struct resolver_impl : io_object_impl
     {
-        virtual void resolve(
-            std::coroutine_handle<>,
-            capy::executor_ref,
-            std::string_view host,
-            std::string_view service,
-            resolve_flags flags,
-            std::stop_token,
-            system::error_code*,
+        virtual void resolve(std::coroutine_handle<>, capy::executor_ref, std::string_view host,
+            std::string_view service, resolve_flags flags, std::stop_token, system::error_code*,
             resolver_results*) = 0;
 
         virtual void cancel() noexcept = 0;
     };
 
 private:
-    inline resolver_impl& get() const noexcept
-    {
-        return *static_cast<resolver_impl*>(impl_);
-    }
+    inline resolver_impl& get() const noexcept { return *static_cast<resolver_impl*>(impl_); }
 };
 
 } // namespace corosio
 } // namespace boost
 
+#endif
 #endif

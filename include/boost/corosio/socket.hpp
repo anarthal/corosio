@@ -10,6 +10,10 @@
 #ifndef BOOST_COROSIO_SOCKET_HPP
 #define BOOST_COROSIO_SOCKET_HPP
 
+#if !defined(BOOST_COROSIO_SOURCE) && defined(BOOST_COROSIO_USE_MODULES)
+import boost.corosio;
+#else
+
 #include <boost/corosio/detail/config.hpp>
 #include <boost/corosio/detail/except.hpp>
 #include <boost/corosio/io_stream.hpp>
@@ -84,11 +88,7 @@ public:
 
     struct socket_impl : io_stream_impl
     {
-        virtual void connect(
-            std::coroutine_handle<>,
-            capy::executor_ref,
-            endpoint,
-            std::stop_token,
+        virtual void connect(std::coroutine_handle<>, capy::executor_ref, endpoint, std::stop_token,
             system::error_code*) = 0;
 
         virtual system::error_code shutdown(shutdown_type) noexcept = 0;
@@ -101,38 +101,27 @@ public:
         std::stop_token token_;
         mutable system::error_code ec_;
 
-        connect_awaitable(socket& s, endpoint ep) noexcept
-            : s_(s)
-            , endpoint_(ep)
-        {
-        }
+        connect_awaitable(socket& s, endpoint ep) noexcept : s_(s), endpoint_(ep) {}
 
-        bool await_ready() const noexcept
-        {
-            return token_.stop_requested();
-        }
+        bool await_ready() const noexcept { return token_.stop_requested(); }
 
         capy::io_result<> await_resume() const noexcept
         {
-            if (token_.stop_requested())
+            if(token_.stop_requested())
                 return {make_error_code(system::errc::operation_canceled)};
             return {ec_};
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex) -> std::coroutine_handle<>
         {
             s_.get().connect(h, ex, endpoint_, token_, &ec_);
             return std::noop_coroutine();
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex,
-            std::stop_token token) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex, std::stop_token token)
+            -> std::coroutine_handle<>
         {
             token_ = std::move(token);
             s_.get().connect(h, ex, endpoint_, token_, &ec_);
@@ -160,12 +149,9 @@ public:
         @param ex The executor whose context will own the socket.
     */
     template<class Ex>
-        requires (!std::same_as<std::remove_cvref_t<Ex>, socket>) &&
-                 capy::Executor<Ex>
-    explicit socket(Ex const& ex)
-        : socket(ex.context())
-    {
-    }
+        requires(!std::same_as<std::remove_cvref_t<Ex>, socket>) && capy::Executor<Ex>
+    explicit socket(Ex const& ex) : socket(ex.context())
+    {}
 
     /** Move constructor.
 
@@ -173,8 +159,7 @@ public:
 
         @param other The socket to move from.
     */
-    socket(socket&& other) noexcept
-        : io_stream(other.context())
+    socket(socket&& other) noexcept : io_stream(other.context())
     {
         impl_ = other.impl_;
         other.impl_ = nullptr;
@@ -193,11 +178,10 @@ public:
     */
     socket& operator=(socket&& other)
     {
-        if (this != &other)
+        if(this != &other)
         {
-            if (ctx_ != other.ctx_)
-                detail::throw_logic_error(
-                    "cannot move socket across execution contexts");
+            if(ctx_ != other.ctx_)
+                detail::throw_logic_error("cannot move socket across execution contexts");
             close();
             impl_ = other.impl_;
             other.impl_ = nullptr;
@@ -229,10 +213,7 @@ public:
 
         @return `true` if the socket is open and ready for operations.
     */
-    bool is_open() const noexcept
-    {
-        return impl_ != nullptr;
-    }
+    bool is_open() const noexcept { return impl_ != nullptr; }
 
     /** Initiate an asynchronous connect operation.
 
@@ -325,13 +306,11 @@ public:
 private:
     friend class acceptor;
 
-    inline socket_impl& get() const noexcept
-    {
-        return *static_cast<socket_impl*>(impl_);
-    }
+    inline socket_impl& get() const noexcept { return *static_cast<socket_impl*>(impl_); }
 };
 
 } // namespace corosio
 } // namespace boost
 
+#endif
 #endif

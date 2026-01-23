@@ -10,6 +10,10 @@
 #ifndef BOOST_COROSIO_TLS_CONTEXT_HPP
 #define BOOST_COROSIO_TLS_CONTEXT_HPP
 
+#if !defined(BOOST_COROSIO_SOURCE) && defined(BOOST_COROSIO_USE_MODULES)
+import boost.corosio;
+#else
+
 #include <boost/corosio/detail/config.hpp>
 #include <boost/system/result.hpp>
 
@@ -133,8 +137,7 @@ class context;
 
 namespace detail {
 struct context_data;
-context_data const&
-get_context_data( context const& ) noexcept;
+context_data const& get_context_data(context const&) noexcept;
 } // namespace detail
 
 /** A portable TLS context for certificate and settings storage.
@@ -191,9 +194,7 @@ class BOOST_COROSIO_DECL context
     struct impl;
     std::shared_ptr<impl> impl_;
 
-    friend
-    detail::context_data const&
-    detail::get_context_data( context const& ) noexcept;
+    friend detail::context_data const& detail::get_context_data(context const&) noexcept;
 
 public:
     /** Construct a default TLS context.
@@ -217,7 +218,7 @@ public:
 
         @param other The context to copy from.
     */
-    context( context const& other ) = default;
+    context(context const& other) = default;
 
     /** Copy assignment operator.
 
@@ -228,7 +229,7 @@ public:
 
         @return Reference to this context.
     */
-    context& operator=( context const& other ) = default;
+    context& operator=(context const& other) = default;
 
     /** Move constructor.
 
@@ -237,7 +238,7 @@ public:
 
         @param other The context to move from.
     */
-    context( context&& other ) noexcept = default;
+    context(context&& other) noexcept = default;
 
     /** Move assignment operator.
 
@@ -249,7 +250,7 @@ public:
 
         @return Reference to this context.
     */
-    context& operator=( context&& other ) noexcept = default;
+    context& operator=(context&& other) noexcept = default;
 
     /** Destructor.
 
@@ -284,10 +285,7 @@ public:
         @see use_certificate_file
         @see use_private_key
     */
-    system::result<void>
-    use_certificate(
-        std::string_view certificate,
-        file_format format );
+    system::result<void> use_certificate(std::string_view certificate, file_format format);
 
     /** Load the entity certificate from a file.
 
@@ -310,10 +308,7 @@ public:
         @see use_certificate
         @see use_private_key_file
     */
-    system::result<void>
-    use_certificate_file(
-        std::string_view filename,
-        file_format format );
+    system::result<void> use_certificate_file(std::string_view filename, file_format format);
 
     /** Load a certificate chain from a memory buffer.
 
@@ -328,8 +323,7 @@ public:
 
         @see use_certificate_chain_file
     */
-    system::result<void>
-    use_certificate_chain( std::string_view chain );
+    system::result<void> use_certificate_chain(std::string_view chain);
 
     /** Load a certificate chain from a file.
 
@@ -349,8 +343,7 @@ public:
 
         @see use_certificate_chain
     */
-    system::result<void>
-    use_certificate_chain_file( std::string_view filename );
+    system::result<void> use_certificate_chain_file(std::string_view filename);
 
     /** Load the private key from a memory buffer.
 
@@ -372,10 +365,7 @@ public:
         @see use_private_key_file
         @see set_password_callback
     */
-    system::result<void>
-    use_private_key(
-        std::string_view private_key,
-        file_format format );
+    system::result<void> use_private_key(std::string_view private_key, file_format format);
 
     /** Load the private key from a file.
 
@@ -401,10 +391,7 @@ public:
         @see use_private_key
         @see set_password_callback
     */
-    system::result<void>
-    use_private_key_file(
-        std::string_view filename,
-        file_format format );
+    system::result<void> use_private_key_file(std::string_view filename, file_format format);
 
     /** Load credentials from a PKCS#12 bundle in memory.
 
@@ -421,10 +408,7 @@ public:
 
         @see use_pkcs12_file
     */
-    system::result<void>
-    use_pkcs12(
-        std::string_view data,
-        std::string_view passphrase );
+    system::result<void> use_pkcs12(std::string_view data, std::string_view passphrase);
 
     /** Load credentials from a PKCS#12 file.
 
@@ -447,10 +431,7 @@ public:
 
         @see use_pkcs12
     */
-    system::result<void>
-    use_pkcs12_file(
-        std::string_view filename,
-        std::string_view passphrase );
+    system::result<void> use_pkcs12_file(std::string_view filename, std::string_view passphrase);
 
     //--------------------------------------------------------------------------
     //
@@ -471,8 +452,7 @@ public:
         @see load_verify_file
         @see set_default_verify_paths
     */
-    system::result<void>
-    add_certificate_authority( std::string_view ca );
+    system::result<void> add_certificate_authority(std::string_view ca);
 
     /** Load CA certificates from a file.
 
@@ -492,8 +472,7 @@ public:
         @see add_certificate_authority
         @see add_verify_path
     */
-    system::result<void>
-    load_verify_file( std::string_view filename );
+    system::result<void> load_verify_file(std::string_view filename);
 
     /** Add a directory of CA certificates for verification.
 
@@ -514,8 +493,7 @@ public:
         @see load_verify_file
         @see set_default_verify_paths
     */
-    system::result<void>
-    add_verify_path( std::string_view path );
+    system::result<void> add_verify_path(std::string_view path);
 
     /** Use the system default CA certificate store.
 
@@ -540,8 +518,7 @@ public:
         @see load_verify_file
         @see add_verify_path
     */
-    system::result<void>
-    set_default_verify_paths();
+    system::result<void> set_default_verify_paths();
 
     //--------------------------------------------------------------------------
     //
@@ -567,8 +544,7 @@ public:
 
         @see set_max_protocol_version
     */
-    system::result<void>
-    set_min_protocol_version( version v );
+    system::result<void> set_min_protocol_version(version v);
 
     /** Set the maximum TLS protocol version.
 
@@ -582,8 +558,7 @@ public:
 
         @see set_min_protocol_version
     */
-    system::result<void>
-    set_max_protocol_version( version v );
+    system::result<void> set_max_protocol_version(version v);
 
     /** Set the allowed cipher suites.
 
@@ -604,8 +579,7 @@ public:
         @note For TLS 1.3, use `set_ciphersuites_tls13()` on backends
             that distinguish between TLS 1.2 and 1.3 cipher configuration.
     */
-    system::result<void>
-    set_ciphersuites( std::string_view ciphers );
+    system::result<void> set_ciphersuites(std::string_view ciphers);
 
     /** Set the ALPN protocol list.
 
@@ -626,8 +600,7 @@ public:
         ctx.set_alpn( { "h2", "http/1.1" } ).value();
         @endcode
     */
-    system::result<void>
-    set_alpn( std::initializer_list<std::string_view> protocols );
+    system::result<void> set_alpn(std::initializer_list<std::string_view> protocols);
 
     //--------------------------------------------------------------------------
     //
@@ -655,8 +628,7 @@ public:
 
         @see verify_mode
     */
-    system::result<void>
-    set_verify_mode( verify_mode mode );
+    system::result<void> set_verify_mode(verify_mode mode);
 
     /** Set the maximum certificate chain verification depth.
 
@@ -668,8 +640,7 @@ public:
 
         @return Success, or an error if the depth is invalid.
     */
-    system::result<void>
-    set_verify_depth( int depth );
+    system::result<void> set_verify_depth(int depth);
 
     /** Set a custom certificate verification callback.
 
@@ -694,8 +665,7 @@ public:
             depends on the TLS backend.
     */
     template<typename Callback>
-    system::result<void>
-    set_verify_callback( Callback callback );
+    system::result<void> set_verify_callback(Callback callback);
 
     /** Set the expected server hostname for verification.
 
@@ -717,8 +687,7 @@ public:
         @note This is typically required for HTTPS clients to ensure
             they're connecting to the intended server.
     */
-    void
-    set_hostname( std::string_view hostname );
+    void set_hostname(std::string_view hostname);
 
     //--------------------------------------------------------------------------
     //
@@ -740,8 +709,7 @@ public:
         @see add_crl_file
         @see set_revocation_policy
     */
-    system::result<void>
-    add_crl( std::string_view crl );
+    system::result<void> add_crl(std::string_view crl);
 
     /** Add a Certificate Revocation List from a file.
 
@@ -761,8 +729,7 @@ public:
         @see add_crl
         @see set_revocation_policy
     */
-    system::result<void>
-    add_crl_file( std::string_view filename );
+    system::result<void> add_crl_file(std::string_view filename);
 
     /** Set the OCSP staple response for server-side stapling.
 
@@ -781,8 +748,7 @@ public:
         @note This is a server-side operation. Clients use
             `set_require_ocsp_staple()` to require stapled responses.
     */
-    system::result<void>
-    set_ocsp_staple( std::string_view response );
+    system::result<void> set_ocsp_staple(std::string_view response);
 
     /** Require OCSP stapling from the server.
 
@@ -796,8 +762,7 @@ public:
         @note Not all servers support OCSP stapling. Enable this only
             when connecting to servers known to support it.
     */
-    void
-    set_require_ocsp_staple( bool require );
+    void set_require_ocsp_staple(bool require);
 
     /** Set the certificate revocation checking policy.
 
@@ -818,8 +783,7 @@ public:
         @see revocation_policy
         @see add_crl
     */
-    void
-    set_revocation_policy( revocation_policy policy );
+    void set_revocation_policy(revocation_policy policy);
 
     //--------------------------------------------------------------------------
     //
@@ -856,12 +820,12 @@ public:
         @see password_purpose
     */
     template<typename Callback>
-    void
-    set_password_callback( Callback callback );
+    void set_password_callback(Callback callback);
 };
 
 } // namespace tls
 } // namespace corosio
 } // namespace boost
 
+#endif
 #endif

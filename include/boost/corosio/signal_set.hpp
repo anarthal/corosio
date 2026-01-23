@@ -10,6 +10,10 @@
 #ifndef BOOST_COROSIO_SIGNAL_SET_HPP
 #define BOOST_COROSIO_SIGNAL_SET_HPP
 
+#if !defined(BOOST_COROSIO_SOURCE) && defined(BOOST_COROSIO_USE_MODULES)
+import boost.corosio;
+#else
+
 #include <boost/corosio/detail/config.hpp>
 #include <boost/corosio/detail/except.hpp>
 #include <boost/corosio/io_object.hpp>
@@ -128,28 +132,20 @@ public:
     /// Combine two flag values.
     friend constexpr flags_t operator|(flags_t a, flags_t b) noexcept
     {
-        return static_cast<flags_t>(
-            static_cast<unsigned>(a) | static_cast<unsigned>(b));
+        return static_cast<flags_t>(static_cast<unsigned>(a) | static_cast<unsigned>(b));
     }
 
     /// Mask two flag values.
     friend constexpr flags_t operator&(flags_t a, flags_t b) noexcept
     {
-        return static_cast<flags_t>(
-            static_cast<unsigned>(a) & static_cast<unsigned>(b));
+        return static_cast<flags_t>(static_cast<unsigned>(a) & static_cast<unsigned>(b));
     }
 
     /// Compound assignment OR.
-    friend constexpr flags_t& operator|=(flags_t& a, flags_t b) noexcept
-    {
-        return a = a | b;
-    }
+    friend constexpr flags_t& operator|=(flags_t& a, flags_t b) noexcept { return a = a | b; }
 
     /// Compound assignment AND.
-    friend constexpr flags_t& operator&=(flags_t& a, flags_t b) noexcept
-    {
-        return a = a & b;
-    }
+    friend constexpr flags_t& operator&=(flags_t& a, flags_t b) noexcept { return a = a & b; }
 
     /// Bitwise NOT (complement).
     friend constexpr flags_t operator~(flags_t a) noexcept
@@ -167,23 +163,18 @@ private:
 
         explicit wait_awaitable(signal_set& s) noexcept : s_(s) {}
 
-        bool await_ready() const noexcept
-        {
-            return token_.stop_requested();
-        }
+        bool await_ready() const noexcept { return token_.stop_requested(); }
 
         capy::io_result<int> await_resume() const noexcept
         {
-            if (token_.stop_requested())
+            if(token_.stop_requested())
                 return {capy::error::canceled};
             return {ec_, signal_number_};
         }
 
         template<typename Ex>
-        auto await_suspend(
-            std::coroutine_handle<> h,
-            Ex const& ex,
-            std::stop_token token) -> std::coroutine_handle<>
+        auto await_suspend(std::coroutine_handle<> h, Ex const& ex, std::stop_token token)
+            -> std::coroutine_handle<>
         {
             token_ = std::move(token);
             s_.get().wait(h, ex, token_, &ec_, &signal_number_);
@@ -194,12 +185,8 @@ private:
 public:
     struct signal_set_impl : io_object_impl
     {
-        virtual void wait(
-            std::coroutine_handle<>,
-            capy::executor_ref,
-            std::stop_token,
-            system::error_code*,
-            int*) = 0;
+        virtual void wait(std::coroutine_handle<>, capy::executor_ref, std::stop_token,
+            system::error_code*, int*) = 0;
 
         virtual system::result<void> add(int signal_number, flags_t flags) = 0;
         virtual system::result<void> remove(int signal_number) = 0;
@@ -228,11 +215,7 @@ public:
         @throws boost::system::system_error Thrown on failure.
     */
     template<std::convertible_to<int>... Signals>
-    signal_set(
-        capy::execution_context& ctx,
-        int signal,
-        Signals... signals)
-        : signal_set(ctx)
+    signal_set(capy::execution_context& ctx, int signal, Signals... signals) : signal_set(ctx)
     {
         add(signal).value();
         (add(signals).value(), ...);
@@ -292,10 +275,7 @@ public:
 
         @return Success, or an error if the signal could not be added.
     */
-    system::result<void> add(int signal_number)
-    {
-        return add(signal_number, none);
-    }
+    system::result<void> add(int signal_number) { return add(signal_number, none); }
 
     /** Remove a signal from the signal set.
 
@@ -339,19 +319,14 @@ public:
             or an error code on failure including:
             - capy::error::canceled: Cancelled via stop_token or cancel().
     */
-    auto async_wait()
-    {
-        return wait_awaitable(*this);
-    }
+    auto async_wait() { return wait_awaitable(*this); }
 
 private:
-    signal_set_impl& get() const noexcept
-    {
-        return *static_cast<signal_set_impl*>(impl_);
-    }
+    signal_set_impl& get() const noexcept { return *static_cast<signal_set_impl*>(impl_); }
 };
 
 } // namespace corosio
 } // namespace boost
 
+#endif
 #endif

@@ -10,6 +10,10 @@
 #ifndef BOOST_COROSIO_ENDPOINT_HPP
 #define BOOST_COROSIO_ENDPOINT_HPP
 
+#if !defined(BOOST_COROSIO_SOURCE) && defined(BOOST_COROSIO_USE_MODULES)
+import boost.corosio;
+#else
+
 #include <boost/corosio/detail/config.hpp>
 #include <boost/url/ipv4_address.hpp>
 #include <boost/url/ipv6_address.hpp>
@@ -53,12 +57,11 @@ public:
         Creates an endpoint with the IPv4 any address (0.0.0.0) and port 0.
     */
     endpoint() noexcept
-        : v4_address_(urls::ipv4_address::any())
-        , v6_address_{}
-        , port_(0)
-        , is_v4_(true)
-    {
-    }
+        : v4_address_(urls::ipv4_address::any()),
+          v6_address_{},
+          port_(0),
+          is_v4_(true)
+    {}
 
     /** Construct from IPv4 address and port.
 
@@ -66,12 +69,11 @@ public:
         @param p The port number in host byte order.
     */
     endpoint(urls::ipv4_address addr, std::uint16_t p) noexcept
-        : v4_address_(addr)
-        , v6_address_{}
-        , port_(p)
-        , is_v4_(true)
-    {
-    }
+        : v4_address_(addr),
+          v6_address_{},
+          port_(p),
+          is_v4_(true)
+    {}
 
     /** Construct from IPv6 address and port.
 
@@ -79,12 +81,11 @@ public:
         @param p The port number in host byte order.
     */
     endpoint(urls::ipv6_address addr, std::uint16_t p) noexcept
-        : v4_address_(urls::ipv4_address::any())
-        , v6_address_(addr)
-        , port_(p)
-        , is_v4_(false)
-    {
-    }
+        : v4_address_(urls::ipv4_address::any()),
+          v6_address_(addr),
+          port_(p),
+          is_v4_(false)
+    {}
 
     /** Construct from port only.
 
@@ -94,59 +95,43 @@ public:
         @param p The port number in host byte order.
     */
     explicit endpoint(std::uint16_t p) noexcept
-        : v4_address_(urls::ipv4_address::any())
-        , v6_address_{}
-        , port_(p)
-        , is_v4_(true)
-    {
-    }
+        : v4_address_(urls::ipv4_address::any()),
+          v6_address_{},
+          port_(p),
+          is_v4_(true)
+    {}
 
     /** Check if this endpoint uses an IPv4 address.
 
         @return `true` if the endpoint uses IPv4, `false` if IPv6.
     */
-    bool is_v4() const noexcept
-    {
-        return is_v4_;
-    }
+    bool is_v4() const noexcept { return is_v4_; }
 
     /** Check if this endpoint uses an IPv6 address.
 
         @return `true` if the endpoint uses IPv6, `false` if IPv4.
     */
-    bool is_v6() const noexcept
-    {
-        return !is_v4_;
-    }
+    bool is_v6() const noexcept { return !is_v4_; }
 
     /** Get the IPv4 address.
 
         @return The IPv4 address. The value is valid even if
         the endpoint is using IPv6 (it will be the default any address).
     */
-    urls::ipv4_address v4_address() const noexcept
-    {
-        return v4_address_;
-    }
+    urls::ipv4_address v4_address() const noexcept { return v4_address_; }
 
     /** Get the IPv6 address.
 
         @return The IPv6 address. The value is valid even if
         the endpoint is using IPv4 (it will be the default any address).
     */
-    urls::ipv6_address v6_address() const noexcept
-    {
-        return v6_address_;
-    }
+    urls::ipv6_address v6_address() const noexcept { return v6_address_; }
 
     /** Get the port number.
 
         @return The port number in host byte order.
     */
-    std::uint16_t port() const noexcept
-    {
-        return port_;
-    }
+    std::uint16_t port() const noexcept { return port_; }
 
     /** Compare endpoints for equality.
 
@@ -157,11 +142,11 @@ public:
     */
     friend bool operator==(endpoint const& a, endpoint const& b) noexcept
     {
-        if (a.is_v4_ != b.is_v4_)
+        if(a.is_v4_ != b.is_v4_)
             return false;
-        if (a.port_ != b.port_)
+        if(a.port_ != b.port_)
             return false;
-        if (a.is_v4_)
+        if(a.is_v4_)
             return a.v4_address_ == b.v4_address_;
         else
             return a.v6_address_ == b.v6_address_;
@@ -171,10 +156,7 @@ public:
 
         @return `true` if endpoints differ.
     */
-    friend bool operator!=(endpoint const& a, endpoint const& b) noexcept
-    {
-        return !(a == b);
-    }
+    friend bool operator!=(endpoint const& a, endpoint const& b) noexcept { return !(a == b); }
 
 private:
     urls::ipv4_address v4_address_;
@@ -186,4 +168,5 @@ private:
 } // namespace corosio
 } // namespace boost
 
+#endif
 #endif

@@ -10,6 +10,10 @@
 #ifndef BOOST_COROSIO_READ_HPP
 #define BOOST_COROSIO_READ_HPP
 
+#if !defined(BOOST_COROSIO_SOURCE) && defined(BOOST_COROSIO_USE_MODULES)
+import boost.corosio;
+#else
+
 #include <boost/corosio/detail/config.hpp>
 #include <boost/corosio/io_stream.hpp>
 #include <boost/capy/io_result.hpp>
@@ -76,19 +80,18 @@ namespace corosio {
         after reading any amount of data.
 */
 template<capy::MutableBufferSequence MB>
-capy::task<capy::io_result<std::size_t>>
-read(io_stream& ios, MB const& bs)
+capy::task<io_result<std::size_t>> read(io_stream& ios, MB const& bs)
 {
     capy::consuming_buffers<MB> consuming(bs);
     std::size_t const total_size = capy::buffer_size(bs);
     std::size_t total_read = 0;
 
-    while (total_read < total_size)
+    while(total_read < total_size)
     {
         auto [ec, n] = co_await ios.read_some(consuming);
-        if (ec)
+        if(ec)
             co_return {ec, total_read};
-        if (n == 0)
+        if(n == 0)
             co_return {make_error_code(capy::error::eof), total_read};
         consuming.consume(n);
         total_read += n;
@@ -148,23 +151,21 @@ read(io_stream& ios, MB const& bs)
     @note Existing string content is preserved. To read into an empty
         string, call `s.clear()` before invoking this function.
 */
-inline
-capy::task<capy::io_result<std::size_t>>
-read(io_stream& ios, std::string& s)
+inline capy::task<io_result<std::size_t>> read(io_stream& ios, std::string& s)
 {
     std::size_t const base = s.size();
     std::size_t const max_size = s.max_size();
     std::size_t capacity = s.capacity();
 
     // Ensure at least 2048 bytes of additional capacity
-    if (capacity < base + 2048)
+    if(capacity < base + 2048)
     {
         capacity = base + 2048;
-        if (capacity > max_size)
+        if(capacity > max_size)
             capacity = max_size;
     }
 
-    if (capacity <= base)
+    if(capacity <= base)
     {
         // Already at max_size with no room to grow
         co_return {make_error_code(system::errc::value_too_large), 0};
@@ -173,22 +174,21 @@ read(io_stream& ios, std::string& s)
     s.resize(capacity);
     std::size_t write_pos = base;
 
-    for (;;)
+    for(;;)
     {
         // Grow by 1.5x when buffer is full
-        if (write_pos == capacity)
+        if(write_pos == capacity)
         {
-            if (capacity == max_size)
+            if(capacity == max_size)
             {
                 // Cannot grow further
                 s.resize(write_pos);
-                co_return {make_error_code(system::errc::value_too_large),
-                    write_pos - base};
+                co_return {make_error_code(system::errc::value_too_large), write_pos - base};
             }
 
             // Calculate new capacity with overflow protection
             std::size_t new_capacity = capacity / 2 + capacity; // 1.5x
-            if (new_capacity < capacity || new_capacity > max_size)
+            if(new_capacity < capacity || new_capacity > max_size)
                 new_capacity = max_size;
 
             capacity = new_capacity;
@@ -198,13 +198,13 @@ read(io_stream& ios, std::string& s)
         auto [ec, n] = co_await ios.read_some(
             capy::mutable_buffer(s.data() + write_pos, capacity - write_pos));
 
-        if (ec)
+        if(ec)
         {
             s.resize(write_pos);
             co_return {ec, write_pos - base};
         }
 
-        if (n == 0)
+        if(n == 0)
         {
             s.resize(write_pos);
             co_return {make_error_code(capy::error::eof), write_pos - base};
@@ -217,4 +217,5 @@ read(io_stream& ios, std::string& s)
 } // namespace corosio
 } // namespace boost
 
+#endif
 #endif

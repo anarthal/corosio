@@ -10,6 +10,10 @@
 #ifndef BOOST_COROSIO_WRITE_HPP
 #define BOOST_COROSIO_WRITE_HPP
 
+#if !defined(BOOST_COROSIO_SOURCE) && defined(BOOST_COROSIO_USE_MODULES)
+import boost.corosio;
+#else
+
 #include <boost/corosio/detail/config.hpp>
 #include <boost/corosio/io_stream.hpp>
 #include <boost/capy/io_result.hpp>
@@ -71,21 +75,20 @@ namespace corosio {
         writing any amount of data.
 */
 template<capy::ConstBufferSequence ConstBufferSequence>
-capy::task<capy::io_result<std::size_t>>
-write(io_stream& ios, ConstBufferSequence const& buffers)
+capy::task<io_result<std::size_t>> write(io_stream& ios, ConstBufferSequence const& buffers)
 {
     capy::consuming_buffers<ConstBufferSequence> consuming(buffers);
     std::size_t const total_size = capy::buffer_size(buffers);
     std::size_t total_written = 0;
 
-    while (total_written < total_size)
+    while(total_written < total_size)
     {
         auto [ec, n] = co_await ios.write_some(consuming);
 
-        if (ec)
+        if(ec)
             co_return {ec, total_written};
 
-        if (n == 0)
+        if(n == 0)
             co_return {make_error_code(system::errc::broken_pipe), total_written};
 
         consuming.consume(n);
@@ -98,4 +101,5 @@ write(io_stream& ios, ConstBufferSequence const& buffers)
 } // namespace corosio
 } // namespace boost
 
+#endif
 #endif
