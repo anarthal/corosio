@@ -80,7 +80,7 @@ namespace corosio {
         after reading any amount of data.
 */
 template<capy::MutableBufferSequence MB>
-capy::task<io_result<std::size_t>> read(io_stream& ios, MB const& bs)
+capy::task<capy::io_result<std::size_t>> read(io_stream& ios, MB const& bs)
 {
     capy::consuming_buffers<MB> consuming(bs);
     std::size_t const total_size = capy::buffer_size(bs);
@@ -151,7 +151,7 @@ capy::task<io_result<std::size_t>> read(io_stream& ios, MB const& bs)
     @note Existing string content is preserved. To read into an empty
         string, call `s.clear()` before invoking this function.
 */
-inline capy::task<io_result<std::size_t>> read(io_stream& ios, std::string& s)
+inline capy::task<capy::io_result<std::size_t>> read(io_stream& ios, std::string& s)
 {
     std::size_t const base = s.size();
     std::size_t const max_size = s.max_size();

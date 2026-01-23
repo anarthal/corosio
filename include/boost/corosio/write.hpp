@@ -75,7 +75,7 @@ namespace corosio {
         writing any amount of data.
 */
 template<capy::ConstBufferSequence ConstBufferSequence>
-capy::task<io_result<std::size_t>> write(io_stream& ios, ConstBufferSequence const& buffers)
+capy::task<capy::io_result<std::size_t>> write(io_stream& ios, ConstBufferSequence const& buffers)
 {
     capy::consuming_buffers<ConstBufferSequence> consuming(buffers);
     std::size_t const total_size = capy::buffer_size(buffers);
