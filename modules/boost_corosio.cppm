@@ -7,12 +7,10 @@ export module boost.corosio;
 export namespace boost::corosio {
 
 using corosio::acceptor;
-using corosio::consuming_buffers;
 using corosio::endpoint;
 using corosio::io_buffer_param;
 using corosio::io_context;
 using corosio::io_object;
-using corosio::io_result;
 using corosio::io_stream;
 using corosio::read;
 using corosio::resolve_flags;
