@@ -30,6 +30,7 @@
 #include <boost/capy/cond.hpp>
 #include <boost/capy/error.hpp>
 #include <boost/capy/ex/run_async.hpp>
+#include <boost/capy/ex/run.hpp>
 #include <boost/capy/task.hpp>
 
 #include <stop_token>
@@ -53,7 +54,7 @@ namespace boost::corosio {
 template<auto Backend>
 struct precancel_test
 {
-    void testTcpSocketWrite()
+    void testTcpWrite()
     {
         io_context ioc(Backend);
         auto ex = ioc.get_executor();
@@ -90,7 +91,7 @@ struct precancel_test
         BOOST_TEST_EQ(done, 2);
     }
 
-    void testTcpSocket()
+    void testTcpRead()
     {
         io_context ioc(Backend);
         auto ex = ioc.get_executor();
@@ -100,39 +101,59 @@ struct precancel_test
         std::stop_source ss;
         ss.request_stop();
 
-        char buf[8];
-        std::error_code read_ec, write_ec, wait_ec;
+        char buf[8] {};
         int done = 0;
 
         auto reader = [&]() -> capy::task<> {
             [[maybe_unused]] auto [ec, n] =
                 co_await s1.read_some(capy::mutable_buffer(buf, sizeof(buf)));
             BOOST_TEST_EQ(n, 0u);
-            read_ec = ec;
-            ++done;
+            BOOST_TEST_EQ(buf[0], '\0'); // nothing transferred
+            BOOST_TEST(ec == capy::cond::canceled);
         };
-        auto writer = [&]() -> capy::task<> {
-            [[maybe_unused]] auto [ec, n] =
-                co_await s1.write_some(capy::const_buffer("x", 1));
-            BOOST_TEST_EQ(n, 0u);
-            write_ec = ec;
-            ++done;
-        };
-        auto waiter = [&]() -> capy::task<> {
-            auto [ec] = co_await s1.wait(wait_type::read);
-            wait_ec   = ec;
+
+        auto main_task = [&]() -> capy::task<> {
+            // Write some bytes on the socket, to detect actual I/O
+            auto [ec, n] = co_await s2.write_some(capy::const_buffer("x", 1));
+            BOOST_TEST(!ec);
+            BOOST_TEST_EQ(n, 1u);
+            BOOST_TEST(!s2.shutdown(tcp_socket::shutdown_type::shutdown_send));
+
+            co_await capy::run(ss.get_token())(reader());
             ++done;
         };
 
-        capy::run_async(ex, ss.get_token())(reader());
-        capy::run_async(ex, ss.get_token())(writer());
+        capy::run_async(ex)(main_task());
+        ioc.run();
+        BOOST_TEST_EQ(done, 1);
+    }
+
+    void testTcpWait()
+    {
+        io_context ioc(Backend);
+        auto ex = ioc.get_executor();
+        auto [s1, s2] =
+            test::make_socket_pair<tcp_socket, tcp_acceptor, false>(ioc);
+
+        std::stop_source ss;
+        ss.request_stop();
+
+        int done = 0;
+
+        // The peer stays open and silent, so the wait has no reason to
+        // complete other than the cancellation under test.
+        BOOST_TEST(s2.is_open());
+
+        auto waiter = [&]() -> capy::task<> {
+            auto [ec] = co_await s1.wait(wait_type::read);
+            BOOST_TEST(ec == capy::cond::canceled);
+            ++done;
+        };
+
         capy::run_async(ex, ss.get_token())(waiter());
         ioc.run();
 
-        BOOST_TEST_EQ(done, 3);
-        BOOST_TEST(read_ec == capy::cond::canceled);
-        BOOST_TEST(write_ec == capy::cond::canceled);
-        BOOST_TEST(wait_ec == capy::cond::canceled);
+        BOOST_TEST_EQ(done, 1);
     }
 
     void testTcpConnect()
@@ -471,8 +492,9 @@ struct precancel_test
 
     void run()
     {
-        testTcpSocketWrite();
-        testTcpSocket();
+        testTcpWrite();
+        testTcpRead();
+        testTcpWait();
         testTcpConnect();
         testTcpAccept();
         testUdpSocket();
