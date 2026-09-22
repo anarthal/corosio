@@ -15,6 +15,7 @@
 #include <boost/corosio/detail/platform.hpp>
 
 #include <boost/corosio/io_context.hpp>
+#include <boost/corosio/shutdown_type.hpp>
 #include <boost/corosio/socket_option.hpp>
 #include <boost/corosio/tcp.hpp>
 #include <boost/corosio/tcp_acceptor.hpp>
@@ -52,6 +53,43 @@ namespace boost::corosio {
 template<auto Backend>
 struct precancel_test
 {
+    void testTcpSocketWrite()
+    {
+        io_context ioc(Backend);
+        auto ex = ioc.get_executor();
+        auto [s1, s2] =
+            test::make_socket_pair<tcp_socket, tcp_acceptor, false>(ioc);
+
+        std::stop_source ss;
+        ss.request_stop();
+
+        char buf[8];
+        std::error_code ec;
+        int done = 0;
+
+        auto writer = [&]() -> capy::task<> {
+            [[maybe_unused]] auto [ec, n] =
+                co_await s1.write_some(capy::const_buffer("x", 1));
+            BOOST_TEST_EQ(n, 0u);
+            BOOST_TEST(ec == capy::cond::canceled);
+            BOOST_TEST(!s1.shutdown(tcp_socket::shutdown_type::shutdown_send));
+            ++done;
+        };
+        auto reader = [&]() -> capy::task<> {
+            // Verify that we actually didn't write anything
+            [[maybe_unused]] auto [ec, n] =
+                co_await s2.read_some(capy::mutable_buffer(buf, sizeof(buf)));
+            BOOST_TEST_EQ(n, 0u);
+            ++done;
+        };
+
+        capy::run_async(ex, ss.get_token())(writer());
+        capy::run_async(ex)(reader());
+        ioc.run();
+
+        BOOST_TEST_EQ(done, 2);
+    }
+
     void testTcpSocket()
     {
         io_context ioc(Backend);
@@ -69,12 +107,14 @@ struct precancel_test
         auto reader = [&]() -> capy::task<> {
             [[maybe_unused]] auto [ec, n] =
                 co_await s1.read_some(capy::mutable_buffer(buf, sizeof(buf)));
+            BOOST_TEST_EQ(n, 0u);
             read_ec = ec;
             ++done;
         };
         auto writer = [&]() -> capy::task<> {
             [[maybe_unused]] auto [ec, n] =
                 co_await s1.write_some(capy::const_buffer("x", 1));
+            BOOST_TEST_EQ(n, 0u);
             write_ec = ec;
             ++done;
         };
@@ -431,6 +471,7 @@ struct precancel_test
 
     void run()
     {
+        testTcpSocketWrite();
         testTcpSocket();
         testTcpConnect();
         testTcpAccept();
