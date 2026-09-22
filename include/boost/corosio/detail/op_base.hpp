@@ -55,7 +55,7 @@ public:
     {
         auto final_ec = token_.stop_requested() ? 
             make_error_code(std::errc::operation_canceled) : ec_;
-        return {ec_, bytes_};
+        return {final_ec, bytes_};
     }
 
     auto await_suspend(std::coroutine_handle<> h, capy::io_env const* env)
