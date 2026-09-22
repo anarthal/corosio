@@ -47,13 +47,14 @@ public:
     {
         // A pre-set ec_ means the initiator failed before dispatch
         // (e.g. a closed object); complete immediately with that error.
-        return static_cast<bool>(ec_) || token_.stop_requested();
+        // Note that the stop_token isn't available at this point yet
+        return static_cast<bool>(ec_);
     }
 
     [[nodiscard]] capy::io_result<std::size_t> await_resume() const noexcept
     {
-        if (token_.stop_requested())
-            return {make_error_code(std::errc::operation_canceled), 0};
+        auto final_ec = token_.stop_requested() ? 
+            make_error_code(std::errc::operation_canceled) : ec_;
         return {ec_, bytes_};
     }
 
@@ -92,14 +93,15 @@ public:
     {
         // A pre-set ec_ means the initiator failed before dispatch;
         // complete immediately with that error.
-        return static_cast<bool>(ec_) || token_.stop_requested();
+        // Note that the stop_token isn't available at this point yet
+        return static_cast<bool>(ec_);
     }
 
     [[nodiscard]] capy::io_result<Value> await_resume() const noexcept
     {
-        if (token_.stop_requested())
-            return {make_error_code(std::errc::operation_canceled), {}};
-        return {ec_, std::move(value_)};
+        auto final_ec = token_.stop_requested() ? 
+            make_error_code(std::errc::operation_canceled) : ec_;
+        return {final_ec, std::move(value_)};
     }
 
     auto await_suspend(std::coroutine_handle<> h, capy::io_env const* env)
@@ -135,14 +137,15 @@ public:
     {
         // A pre-set ec_ means the initiator failed before dispatch
         // (e.g. auto-open); complete immediately with that error.
-        return static_cast<bool>(ec_) || token_.stop_requested();
+        // Note that the stop_token isn't available at this point yet
+        return static_cast<bool>(ec_);
     }
 
     [[nodiscard]] capy::io_result<> await_resume() const noexcept
     {
-        if (token_.stop_requested())
-            return {make_error_code(std::errc::operation_canceled)};
-        return {ec_};
+        auto final_ec = token_.stop_requested() ? 
+            make_error_code(std::errc::operation_canceled) : ec_;
+        return {final_ec};
     }
 
     auto await_suspend(std::coroutine_handle<> h, capy::io_env const* env)
