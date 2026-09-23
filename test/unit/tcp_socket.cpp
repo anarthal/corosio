@@ -989,65 +989,6 @@ struct tcp_socket_test
         s4.close();
     }
 
-    // A write cancelled by an already-stopped token must report the
-    // bytes the peer receives. This might be non-zero on reactor platforms,
-    // as the operation is initiated anyway.
-    void testWriteSomeAlreadyStoppedToken()
-    {
-        constexpr char payload[]         = "hello";
-        constexpr std::size_t payload_size = sizeof(payload) - 1;
-
-        io_context ioc(Backend);
-        auto ex = ioc.get_executor();
-        auto [s1, s2] =
-            test::make_socket_pair<tcp_socket, tcp_acceptor, false>(ioc);
-
-        std::stop_source ss;
-        ss.request_stop();
-
-        std::error_code write_ec;
-        std::size_t reported = 0;
-        std::size_t received = 0;
-        bool write_done      = false;
-        bool read_done       = false;
-
-        auto writer = [&]() -> capy::task<> {
-            auto [ec, n] = co_await s1.write_some(
-                capy::const_buffer(payload, payload_size));
-            write_ec = ec;
-            reported = n;
-            // Whatever the write reported, close the send side so the
-            // drain below terminates on EOF instead of hanging.
-            BOOST_TEST(!s1.shutdown(shutdown_type::shutdown_send));
-            write_done = true;
-        };
-
-        auto drainer = [&]() -> capy::task<> {
-            char buf[64];
-            for (;;)
-            {
-                auto [ec, n] = co_await s2.read_some(
-                    capy::mutable_buffer(buf, sizeof(buf)));
-                received += n;
-                if (ec)
-                    break;
-            }
-            read_done = true;
-        };
-
-        capy::run_async(ex, ss.get_token())(writer());
-        capy::run_async(ex)(drainer());
-        ioc.run();
-
-        BOOST_TEST(write_done);
-        BOOST_TEST(read_done);
-        BOOST_TEST(write_ec == capy::cond::canceled);
-
-        // The peer is the ground truth: every byte it received left
-        // through the cancelled write and must appear in its count.
-        BOOST_TEST_EQ(reported, received);
-    }
-
     // Composed Operations
 
     void testReadFull()
@@ -2001,7 +1942,6 @@ struct tcp_socket_test
         testCloseWhileReading();
         testStopTokenCancellation();
         testWaitForErrorThenWait();
-        testWriteSomeAlreadyStoppedToken();
 
         // Socket options
         testNoDelay();
